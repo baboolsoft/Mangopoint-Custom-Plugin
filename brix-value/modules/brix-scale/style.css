@@ -1,0 +1,63 @@
+/* Container for the scale */
+.brix-scale-container {
+    width: 100%;
+    height: 40px;
+    background-color: #f3f3f3;
+    position: relative;
+    margin-top: 5%;
+}
+
+/* Actual scale (with gradient) */
+.brix-scale {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(253,230,138,1) 0%, rgba(248,115,113,1) 100%);
+    position: relative;
+}
+
+/* Styling for the tick marks */
+.tick {
+    position: absolute;
+    height: 10px;
+    width: 2px;
+    background-color: #000;
+    bottom: 0;
+}
+
+.tick:not(.small) {
+    height: 22px;
+}
+
+.tick.active {
+    background-color: #e74c3c;
+}
+
+/* Styling for the value labels */
+.tick-label {
+    position: absolute;
+    bottom: -25px;
+    font-size: 10px;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+}
+
+/* Indicator for current value */
+.indicator {
+    position: absolute;
+    bottom: 10px;
+    height: 30px;
+    width: 2px;
+    background-color: #e74c3c;
+    transition: left 0.3s ease;
+}
+
+.indicator-value {
+    position: absolute;
+    bottom: 40px;
+    font-size: 14px;
+    color: #e74c3c;
+    font-weight: bold;
+    left: 50%;
+    transform: translateX(-50%);
+}

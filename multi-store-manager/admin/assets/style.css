@@ -1,0 +1,167 @@
+.wp-submenu li:has(a[href="admin.php?page=multi-store-manager/product-inventory"]),
+.wp-submenu li:has(a[href="admin.php?page=multi-store-manager/shipping-fare"]),
+.wp-submenu li:has(a[href="admin.php?page=multi-store-manager/orders-list"]) {
+    display: none;
+}
+
+.msm-wrap {
+    position: relative;
+    padding-right: 20px;
+
+    .title-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .form {
+        position: relative;
+        padding: 24px;
+        margin-top: 24px;
+        background-color: #fff;
+        border-radius: 8px;
+
+        .error {
+            margin-top: 24px;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #000;
+        }
+
+        &:not(.show) {
+            display: none;
+        }
+
+        .field-wrapper {
+            display: grid;
+            width: 50%;
+        }
+
+        .field-group {
+            td {
+                padding: 15px 10px;
+            }
+
+            .label {
+                width: 25%;
+                vertical-align: baseline;
+                padding-left: 0;
+
+                label {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #000;
+                }
+            }
+
+            select,
+            input {
+                max-width: unset;
+                width: 100%;
+            }
+
+            .hint {
+                display: inline-block;
+                width: 100%;
+                font-size: 12px;
+                color: #999;
+                padding-top: 4px;
+            }
+        }
+    }
+
+    .chip {
+        font-size: 11px;
+        padding: 4px;
+        background: #eed7d7;
+        border-radius: 8px;
+        color: #a00;
+        font-weight: 600;
+        line-height: 1.25;
+        margin-left: 8px;
+        border: 1px solid #a00;
+
+        &.default-store {
+            background: #c8e1ed;
+            color: #0073aa;
+            border-color: #0073aa;
+        }
+    }
+
+    .wp-list-table {
+        margin-top: 24px;
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: #fff;
+
+        th {
+            padding: 12px 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #000;
+            text-align: left;
+            background-color: #f9f9f9;
+        }
+
+        td {
+            padding: 12px 10px;
+            font-size: 14px;
+            color: #000;
+
+            small {
+                font-weight: 700;
+                opacity: .75;
+            }
+
+            &.action {
+                text-align: right;
+            }
+
+            select,
+            input {
+                width: 100%;
+            }
+
+            &:has(.status-toggler) {
+                vertical-align: middle;
+            }
+
+            .status-toggler {
+                position: relative;
+                background: #0000;
+                border: none;
+                width: 18px;
+                height: 18px;
+                padding: 0;
+                cursor: pointer;
+
+                i {
+                    position: relative;
+                    width: 18px;
+                    height: 18px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background-color: #0000000a;
+                    border: 1px solid #00000040;
+                    color: #00000040;
+                    margin: 0;
+                    border-radius: 50%;
+                    font-size: 16px;
+                    transition: all .6s;
+                }
+
+                &.active i {
+                    color: #0a875a;
+                    border-color: #0a875a;
+                    background: #b9efdc;
+                }
+            }
+        }
+
+        .no-data {
+            text-align: center;
+        }
+    }
+}

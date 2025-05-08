@@ -1,0 +1,61 @@
+/**
+ * Admin styles for WooCommerce Multi-Store Delivery
+ */
+
+/* Admin form */
+.wc-multi-store-admin-form {
+  max-width: 800px;
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: #fff;
+  border: 1px solid #ccd0d4;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.wc-multi-store-admin-notice {
+  margin: 15px 0;
+}
+
+/* Store selector */
+.wc-multi-store-store-selector {
+  margin-bottom: 20px;
+}
+
+/* Product inventory */
+.wc-multi-store-product-inventory {
+  margin-top: 20px;
+}
+
+.wc-multi-store-product-inventory input[type="number"] {
+  width: 100px;
+}
+
+/* API instructions */
+.wc-multi-store-api-instructions {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #fff;
+  border: 1px solid #ccd0d4;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.wc-multi-store-api-instructions ul {
+  margin-left: 20px;
+  list-style-type: disc;
+}
+
+/* Save all button */
+.wc-multi-store-save-all-container {
+  margin: 15px 0;
+  text-align: right;
+}
+
+.check-box-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.check-box-wrapper>* {
+  margin: 0 !important;
+}

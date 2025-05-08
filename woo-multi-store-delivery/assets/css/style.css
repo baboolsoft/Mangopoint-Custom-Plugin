@@ -1,0 +1,100 @@
+/* skeleton style begin */
+.wmsp .skeleton-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    padding-top: 1.5rem;
+    margin: 0 -6px;
+}
+
+.wmsp .skeleton-card-item {
+    position: relative;
+    width: 25%;
+    padding: 6px;
+}
+
+.wmsp .skeleton-content {
+    position: relative;
+    padding-top: 1rem;
+    display: flex;
+    gap: 1rem;
+    flex-direction: column;
+}
+
+.wmsp .skeleton-card {
+    position: relative;
+    border-radius: 5px;
+    border: 1px solid #eee;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+    height: 320px;
+    padding: 10px;
+}
+
+.wmsp .skeleton-image,
+.wmsp .skeleton-title,
+.wmsp .skeleton-price,
+.wmsp .skeleton-btn {
+    background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
+    border-radius: 5px;
+    background-size: 200% 100%;
+    -webkit-animation: 1.5s shine linear infinite;
+    animation: 1.5s shine linear infinite;
+    margin: auto;
+}
+
+.wmsp .skeleton-image {
+    height: 170px;
+}
+
+.wmsp .skeleton-title {
+    width: 100%;
+    height: 30px;
+}
+
+.wmsp .skeleton-price {
+    height: 25px;
+    width: 75%;
+}
+
+.wmsp .skeleton-btn {
+    height: 25px;
+    width: 75%;
+}
+
+/* skeleton style end */
+
+@media (max-width: 872px) {
+    .wmsp .skeleton-card-item {
+        width: 33.33%;
+    }
+}
+
+@media (min-width: 768px) {
+    header {
+        .elementor-container:has(.hfe-site-logo-img) {
+            justify-content: space-between;
+        }
+
+        .elementor-63184 .elementor-element:has(.hfe-site-logo-img) {
+            width: 20%;
+        }
+
+        .elementor-63184 .elementor-element:has(.hfe-nav-menu) {
+            width: 60%;
+        }
+    }
+}
+
+@media (max-width: 680px) {
+    .wmsp .skeleton-card-item {
+        width: 50%;
+    }
+}
+
+@media (max-width: 480px) {
+
+    .wmsp .skeleton-card-item {
+        width: 100%;
+    }
+}

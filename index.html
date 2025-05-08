@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Google Places Text Search</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+    }
+
+    #input-container {
+      margin-bottom: 20px;
+    }
+
+    #places-list {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    #places-list li {
+      background: #fff;
+      padding: 12px;
+      border: 1px solid #ddd;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #places-list li:hover {
+      background-color: #f0f0f0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Places Text Search</h2>
+    <div id="input-container">
+      <input id="search-input" type="text" placeholder="Search for places, e.g., 'restaurants in New York'"
+        style="width: 100%; padding: 10px; font-size: 16px; border-radius: 4px; border: 1px solid #ddd;" />
+    </div>
+    <ul id="places-list"></ul>
+  </div>
+
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBzJaEbcg1ciAFcN5j-dNKMmZRXscbAi9w&libraries=places&callback=initMap"
+    async defer></script>
+
+  <script>
+    let map, service;
+
+    function initMap() {
+      map = new google.maps.Map(document.createElement("div"), {
+        center: { lat: 0, lng: 0 },
+        zoom: 2,
+      });
+      console.log(map);
+      service = new google.maps.places.PlacesService(map);
+
+      document.getElementById("search-input").addEventListener("input", function () {
+        const query = this.value;
+        if (query.length > 0) {
+          performSearch(query);
+        } else {
+          // clearResults();
+        }
+      });
+    }
+
+    function performSearch(query) {
+      const request = {
+        query: query + " India",
+        fields: ["name", "formatted_address", "place_id"],
+        types: ["locality"]
+      };
+
+      service.textSearch(request, function (results, status) {
+        if (status === google.maps.places.PlacesServiceStatus.OK) {
+          // console.log(results);
+          results.forEach(element => {
+            console.log(`name is ${element.name}`);
+          });
+        } else {
+          // clearResults();
+        }
+      });
+    }
+  </script>
+</body>
+
+</html>

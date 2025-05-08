@@ -1,0 +1,41 @@
+.toaster {
+    position: fixed;
+    top: 0;
+    background: #198754;
+    max-width: 280px;
+    width: 100%;
+    border-radius: 3px;
+    padding: 10px;
+    color: #fff;
+    right: 15px;
+    transform: translateX(100%);
+    opacity: 0;
+    transition: all .6s;
+    padding-right: 20px;
+    z-index: 99999;
+}
+
+.toaster.danger {
+    background-color: #dc3545;
+}
+
+.toaster.info {
+    background-color: #174281;
+}
+
+.toaster .close {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    background: #0000;
+    border: none;
+    font-size: 20px;
+    z-index: 22;
+    color: #fff;
+}
+
+.toaster.show {
+    opacity: 1;
+    transform: translateX(0);
+}
