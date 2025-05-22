@@ -1,6 +1,6 @@
 jQuery('document').ready(function () {
     const { name = null } = init.fetchCoords()
-    jQuery("ul.hfe-nav-menu").prepend(`<li class="location-pin menu-item menu-item-type-post_type menu-item-object-page parent hfe-creative-menu">
+    jQuery("ul.hfe-nav-menu").prepend(`<li class="location-pin desktop-menu-item menu-item menu-item-type-post_type menu-item-object-page parent hfe-creative-menu">
         <button class="location-pin-wrapper">
             <div class="location-pin-button" title="${name}">
                 <i class="fa fa-map-marked-alt"></i>
@@ -8,6 +8,52 @@ jQuery('document').ready(function () {
             <h6 class="label">${name ? name : "Search Location"}</h6>
         </button>
     </li>`);
+
+    jQuery(".hfe-nav-menu.hfe-layout-horizontal").prepend(`<li class="menu-wrap location-pin menu-item menu-item-type-post_type menu-item-object-page parent hfe-creative-menu">
+        <button class="location-pin-wrapper">
+            <div class="location-pin-button" title="${name}">
+                <i class="fa fa-map-marked-alt"></i>
+            </div>
+            <h6 class="label">${name ? name : "Search Location"}</h6>
+        </button>
+    </li>`);
+
+    if (jQuery('form.checkout').length) {
+        const { name = "", country = "", district = "", state = "", pincode = "" } = JSON.parse(localStorage.getItem('coords')) || {};
+        jQuery('form.checkout [name="billing_city"]').val(`${name}${name.toLowerCase() !== district.toLowerCase() ? `, ${district}` : ""}`);
+        jQuery('form.checkout [name="billing_country"]').val(country);
+        jQuery('form.checkout [name="billing_state"]').val(state);
+        jQuery('form.checkout [name="billing_postcode"]').val(pincode);
+
+        jQuery('form.checkout [name="shipping_city"]').val(`${name}${name.toLowerCase() !== district.toLowerCase() ? `, ${district}` : ""}`);
+        jQuery('form.checkout [name="shipping_country"]').val(country);
+        jQuery('form.checkout [name="shipping_state"]').val(state);
+        jQuery('form.checkout [name="shipping_postcode"]').val(pincode);
+    }
+
+    // if (jQuery('.woocommerce-table.order_details').length) {
+    //     jQuery('.woocommerce-table.order_details tfoot tr').each(function () {
+    //         if (jQuery(this).find('td').html() === "Free shipping") {
+    //             jQuery(this).remove();
+    //         }
+    //     });
+    // }
+
+    if (localStorage.getItem("enableShipping") ?? false) {
+        const info = JSON.parse(localStorage.getItem("shippingInfo"));
+
+        jQuery('form.checkout [name="shipping_first_name"]').val(info.fname);
+        jQuery('form.checkout [name="shipping_last_name"]').val(info.lname);
+        jQuery('form.checkout [name="shipping_country"]').val(info.country);
+        jQuery('form.checkout [name="shipping_address_1"]').val(info.address1);
+        jQuery('form.checkout [name="shipping_address_2"]').val(info.address2);
+        jQuery('form.checkout [name="shipping_city"]').val(info.city);
+        jQuery('form.checkout [name="shipping_state"]').val(info.state);
+        jQuery('form.checkout [name="shipping_postcode"]').val(info.pincode);
+        setTimeout(() => {
+            jQuery('[name="ship_to_different_address"]').click();
+        }, 100);
+    }
 
     setTimeout(() => {
         if (jQuery('.lbpl').length > 0) {
@@ -27,7 +73,7 @@ jQuery('document').ready(function () {
 });
 
 var productDatas = null;
-var map, service;
+var map, service, marker;
 
 const init = {
     fetchCoords: (callBack = null, getLocation = true) => {
@@ -94,10 +140,9 @@ const init = {
     }
 }
 
-const addSearchBox = () => {
+const addSearchBox = (e) => {
 
-    const { top, left } = jQuery('.location-pin-button').offset();
-    const screenWidth = (window.innerWidth);
+    const { top } = jQuery('.location-pin.desktop-menu-item .location-pin-button').offset();
 
     jQuery('body').append(`<div class="location-popup-wrapper">
         <div class="location-popup" style="top: ${top + 40}px;">
@@ -243,10 +288,21 @@ const filterProducts = (products = productDatas, ele) => {
         }
 
         if (sort === "best-selling") {
-            products = products.filter(item => item.best_selling);
+            products = products.filter(({ type, best_selling = 0, variants }) => {
+                if (type === "simple" && best_selling) {
+                    return true;
+                } else if (type === "variable" && (variants.filter(d => d.best_selling === "1").length)) {
+                    return true;
+                }
+                return false;
+            });
         }
 
-        products = products.filter(item => item.option === options);
+        // products = products.filter(item =>
+        //     (item.type === "simple" && item.option === options) ||
+        //     (item.type === "variable" && item.variants.filter(d => d.delivery_estimate === "1" && options === "same-day-delivery").length) ||
+        //     (item.type === "variable" && item.variants.filter(d => d.delivery_estimate !== "1" && options === "scheduled-delivery").length)
+        // );
 
         if (limit > 0) {
             products = products.slice(offset, (offset > 0 ? (offset * limit) : limit));
@@ -260,7 +316,7 @@ const filterProducts = (products = productDatas, ele) => {
                 let btntxt = `<a class="btn" href="${item.slug}">View Products</a>`;
 
                 if ((item.stock > 0) && (item.type === "simple")) {
-                    btntxt = `<a href="?add-to-cart=${item.id}" data-store-id="${item.storeId}" aria-describedby="woocommerce_loop_add_to_cart_link_describedby_${item.id}" data-quantity="1" class="btn add_to_cart_button ajax_add_to_cart" data-product_id="${item.id}" data-product_sku="" aria-label="Add to cart: “${item.name}”" rel="nofollow" data-success_message="“${item.name}” has been added to your cart">Add to cart</a>`;
+                    btntxt = `<a href="?add-to-cart=${item.id}" data-delivery-option="${item.option}" data-store-id="${item.storeId}" aria-describedby="woocommerce_loop_add_to_cart_link_describedby_${item.id}" data-quantity="1" class="btn add_to_cart_button ajax_add_to_cart" data-product_id="${item.id}" data-product_sku="" aria-label="Add to cart: “${item.name}”" rel="nofollow" data-success_message="“${item.name}” has been added to your cart">Add to cart</a>`;
                 }
 
                 html += `<li class="product-item">
@@ -380,6 +436,66 @@ function initMap(ele = false) {
         zoom: 2,
     });
     service = new google.maps.places.PlacesService(map);
+
+    if (jQuery('#map-container').length) {
+        const { latitude, longitude, name } = JSON.parse(localStorage.getItem('coords')) || {};
+        map = new google.maps.Map(document.getElementById("map-container"), {
+            center: { lat: latitude, lng: longitude },
+            zoom: 15,
+        });
+        const input = document.getElementById("search-place");
+        const searchBox = new google.maps.places.SearchBox(input);
+        map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
+
+        map.addListener("bounds_changed", () => {
+            searchBox.setBounds(map.getBounds());
+        });
+
+        marker = new google.maps.Marker({
+            map,
+            anchorPoint: new google.maps.Point(0, -29),
+            position: { lat: latitude, lng: longitude },
+            title: name
+        });
+
+        searchBox.addListener("places_changed", () => {
+            const places = searchBox.getPlaces();
+
+            if (places.length === 0) return;
+
+            marker.setVisible(false);
+
+            const place = places[0];
+            if (!place.geometry) return;
+
+            handleAdressChange(place);
+        });
+
+        jQuery('.current-location').click((e) => {
+            e.preventDefault();
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((({ coords: { latitude, longitude } }) => {
+                    const geocoder = new google.maps.Geocoder();
+
+                    geocoder.geocode({ location: { lat: latitude, lng: longitude } }, (results, status) => {
+                        if (status === google.maps.GeocoderStatus.OK && results.length) {
+                            let address = results.find(t => t.address_components[0].types.includes("postal_code"));
+                            if (typeof address === "undefined") {
+                                address = results.find(t => t.address_components.map(d => d.types.includes('postal_code')))
+                            } else {
+                                address = results[0];
+                            }
+                            handleAdressChange(address);
+                        } else {
+                            console.log("Geocoder failed due to: " + status);
+                        }
+                    });
+                }));
+            }
+        }
+        );
+    }
+
 }
 
 function initMapAction(ele = false) {
@@ -440,7 +556,11 @@ function initMapAction(ele = false) {
                         jQuery('.location-pin-wrapper .label').html(jQuery(this).find('.city').html());
                         removeSearchBox();
                         setTimeout(() => {
-                            restCall();
+                            if (jQuery('.custom-cart-form').length > 0) {
+                                location.reload(true);
+                            } else if (jQuery('.lbpl').length > 0) {
+                                restCall();
+                            }
                         }, 100);
                     });
                 });
@@ -455,14 +575,15 @@ const sessionPlace = ({
     name = null,
     address = null,
     pincode = null,
-    state = null,
-    country = null,
+    state = "TN",
+    country = "IN",
     district = null,
+    callBack = null,
 }) => {
 
     localStorage.setItem('coords', JSON.stringify({ latitude, longitude, name, address, pincode, state, country, district }));
 
-    if (!name || !address) {
+    if ((!name || !address) && (latitude !== 0 && longitude !== 0)) {
 
         var geocoder = new google.maps.Geocoder();
         var latlng = new google.maps.LatLng(latitude, longitude);
@@ -504,8 +625,11 @@ const sessionPlace = ({
                     beforeSend: () => {
                         jQuery("body").addClass('msm__loading');
                     },
-                    success: () => {
+                    success: (response) => {
                         jQuery("body").removeClass('msm__loading');
+                        if (typeof callBack === "function") {
+                            callBack(response);
+                        }
                     }
                 });
             }
@@ -520,46 +644,132 @@ const sessionPlace = ({
             beforeSend: () => {
                 jQuery("body").addClass('msm__loading');
             },
-            success: () => {
+            success: (response) => {
                 jQuery("body").removeClass('msm__loading');
+                if (typeof callBack === "function") {
+                    callBack(response);
+                }
             }
         });
     }
 }
 
 const handleAddress = () => {
-    jQuery('.woocommerce-billing-fields__field-wrapper [name="billing_postcode"]').blur(function (e) {
-        if (e.target.value) {
-            jQuery.ajax({
-                url: `${window.location.origin}/wp-json/multi-store-manager/v1/app/api/shipping-fare/`,
-                type: "POST",
-                data: {
-                    pincode: e.target.value
-                },
-                beforeSend: () => {
-                    jQuery('.shop_table tfoot .fee').each(function () {
-                        if (jQuery(this).find('th').html() == "Shipping Fare") {
-                            jQuery(this).find('td').html(`calculating fee...`);
-                        }
-                    });
-                    jQuery('button[name="woocommerce_checkout_place_order"]').attr('disabled', true);
-                },
-                success: ({ status, fare_html, enable_order, reason }) => {
-                    if (status) {
+    ["billing_postcode","shipping_postcode"].forEach(name => {
+    // ["shipping_postcode"].forEach(name => {
+        jQuery(`[name="${name}"]`).blur(function (e) {
+            if (e.target.value) {
+                const { latitude, longitude } = JSON.parse(localStorage.getItem('coords')) || {};
+                jQuery.ajax({
+                    url: `${window.location.origin}/wp-json/multi-store-manager/v1/app/api/shipping-fare/`,
+                    type: "POST",
+                    data: {
+                        // pincode: e.target.value,
+                        pincode: jQuery("[name='ship_to_different_address']").is(':checked') ? jQuery('[name="shipping_postcode"]').val() : jQuery('[name="billing_postcode"]').val(),
+                        latitude, longitude
+                    },
+                    beforeSend: () => {
                         jQuery('.shop_table tfoot .fee').each(function () {
                             if (jQuery(this).find('th').html() == "Shipping Fare") {
-                                jQuery(this).find('td').html(fare_html);
+                                jQuery(this).find('td').html(`calculating fee...`);
                             }
                         });
-                        jQuery('button[name="woocommerce_checkout_place_order"]').removeAttr('disabled', true);
-                        // jQuery('.checkout').removeClass('disable_place_order');
-                    }
-                    if (!enable_order) {
                         jQuery('button[name="woocommerce_checkout_place_order"]').attr('disabled', true);
-                        // jQuery('.checkout').addClass('disable_place_order');
+                        jQuery("body").addClass('msm__loading');
+                    },
+                    success: ({ status, fare_html, enable_order, locationInfo }) => {
+                        if (status) {
+                            jQuery('.shop_table tfoot .fee').each(function () {
+                                if (jQuery(this).find('th').html() == "Shipping Fare") {
+                                    jQuery(this).find('td').html(fare_html);
+                                }
+                            });
+                            const { latitude, longitude } = init.fetchCoords();
+                            // if (latitude !== locationInfo.latitude && longitude !== locationInfo.longitude) {
+                            sessionPlace({
+                                latitude: locationInfo.latitude,
+                                longitude: locationInfo.longitude,
+                                callBack: () => {
+                                    location.reload(true);
+                                }
+                            });
+                            localStorage.setItem("shippingInfo", JSON.stringify({
+                                fname: jQuery('form.checkout [name="shipping_first_name"]').val(),
+                                lname: jQuery('form.checkout [name="shipping_last_name"]').val(),
+                                country: jQuery('form.checkout [name="shipping_country"]').val(),
+                                address1: jQuery('form.checkout [name="shipping_address_1"]').val(),
+                                address2: jQuery('form.checkout [name="shipping_address_2"]').val(),
+                                city: jQuery('form.checkout [name="shipping_city"]').val(),
+                                state: jQuery('form.checkout [name="shipping_state"]').val(),
+                                pincode: jQuery('form.checkout [name="shipping_postcode"]').val()
+                            }));
+                            localStorage.setItem('enableShipping', true);
+                            // }
+                            // jQuery('button[name="woocommerce_checkout_place_order"]').removeAttr('disabled', true);
+                            // jQuery('.checkout').removeClass('disable_place_order');
+                        }
+                        if (!enable_order) {
+                            // jQuery('button[name="woocommerce_checkout_place_order"]').attr('disabled', true);    
+                            // jQuery('.checkout').addClass('disable_place_order');
+                        }
                     }
-                }
-            })
+                })
+            }
+        })
+    });
+}
+
+const handleAdressChange = (place) => {
+    const address = place.address_components || [];
+    const cityComponent = address.find(d => d.types.indexOf('locality') > -1);
+    const stateComponent = address.find(d => d.types.indexOf('administrative_area_level_1') > -1);
+    const countryComponent = address.find(d => d.types.indexOf('country') > -1);
+    const districtComponent = address.find(d => (
+        d.types.indexOf('administrative_area_level_2') > -1 ||
+        d.types.indexOf('administrative_area_level_3') > -1
+    ));
+    const pincodeComponent = address.find(d => d.types.indexOf('postal_code') > -1);
+    const pincode = pincodeComponent ? pincodeComponent.long_name : null;
+
+    const name = cityComponent ? cityComponent.long_name : null;
+    const country = countryComponent ? countryComponent.short_name : null;
+    const district = districtComponent ? districtComponent.long_name : null;
+    const state = stateComponent ? stateComponent.short_name : null;
+
+    sessionPlace({
+        name,
+        latitude: place.geometry.location.lat(),
+        longitude: place.geometry.location.lng(),
+        address: place.formatted_address,
+        pincode,
+        state,
+        country,
+        district,
+        callBack: (response) => {
+            jQuery('form.checkout [name="billing_city"]').val(`${name}${name.toLowerCase() !== district.toLowerCase() ? `, ${district}` : ""}`);
+            jQuery('form.checkout [name="billing_country"]').val(country);
+            jQuery('form.checkout [name="billing_state"]').val(state);
+            jQuery('form.checkout [name="billing_address_1"]').val(place.formatted_address || "");
+            jQuery('form.checkout [name="billing_address_2"]').val('');
+
+            jQuery('form.checkout [name="shipping_city"]').val(`${name}${name.toLowerCase() !== district.toLowerCase() ? `, ${district}` : ""}`);
+            jQuery('form.checkout [name="shipping_country"]').val(country);
+            jQuery('form.checkout [name="shipping_state"]').val(state);
+            jQuery('form.checkout [name="shipping_address_1"]').val(place.formatted_address || "");
+            jQuery('form.checkout [name="shipping_address_2"]').val('');
+
+            document.getElementById("billing_postcode").value = pincode;
+            document.getElementById("shipping_postcode").value = pincode;
+
+            setTimeout(() => {
+                document.getElementById("shipping_postcode").dispatchEvent(new Event("keydown", { bubbles: true }));
+                document.getElementById("billing_postcode").dispatchEvent(new Event("keydown", { bubbles: true }));
+                location.reload(true);
+            }, 100);
         }
-    })
+    });
+    marker.setPosition(place.geometry.location);
+    marker.setVisible(true);
+    map.setCenter(place.geometry.location);
+    map.setZoom(15);
 }

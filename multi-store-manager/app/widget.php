@@ -38,13 +38,14 @@ class Multi_Store_Product_list extends WP_Widget
         echo '<div class="lbpl" data-limit="' . $limit . '" data-category="' . json_encode($categories) . '" data-sort="' . $sort . '" data-pagination="' . $pagination . '" data-tabs="' . $tabs . '" data-options="' . $options . '">
             <h2 class="elementor-heading-title elementor-size-default">' . apply_filters('widget_title', $instance['title']) . '</h2>';
         if ($tabs) {
+            $id = "filter_".(strtolower(str_replace(" ","_",$instance['title'])));
             echo '<div class="lbpl-filters">
                 <div class="lbpl-filter">
-                    <label>
-                        <input type="radio" name="delivery_type" value="same-day-delivery" checked> Same Day Delivery
+                    <label for="'.$id.'_same_day_delivery">
+                        <input type="radio" id="'.$id.'_same_day_delivery" name="'.$id.'" value="same-day-delivery" checked> Same Day Delivery
                     </label>
-                    <label>
-                        <input type="radio" name="delivery_type" value="scheduled-delivery"> Scheduled Delivery
+                    <label for="'.$id.'_scheduled_delivery">
+                        <input type="radio" id="'.$id.'_scheduled_delivery" name="'.$id.'" value="scheduled-delivery"> Scheduled Delivery
                     </label>
                 </div>
             </div>';
