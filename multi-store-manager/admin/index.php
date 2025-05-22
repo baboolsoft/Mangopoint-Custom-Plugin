@@ -10,12 +10,15 @@ class manager
     private $product_table;
     private $config_table;
     private $fare_table;
+    private $order_table;
+    private $store_list;
 
     public function __construct()
     {
         require_once STORE_PLUGIN_DIR . '/admin/helpers/store.php';
         $store = new storeHelper();
         $this->store_table = $store->tableName();
+        $this->store_list = $store->getStoreList();
 
         require_once STORE_PLUGIN_DIR . '/admin/helpers/config.php';
         $config = new configHelper();
@@ -29,9 +32,16 @@ class manager
         $fare = new fareHelper();
         $this->fare_table = $fare->tableName();
 
+        require_once STORE_PLUGIN_DIR . '/admin/helpers/orders.php';
+        $order = new orderHelper();
+        $this->order_table = $order->tableName();
+
         add_action('admin_menu', [$this, 'menuList']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
         add_action('rest_api_init', [$this, 'rest_api_routes']);
+        add_filter('woocommerce_get_order_item_totals', [$this, 'remove_shipping'], 10, 3);
+
+        add_action('woocommerce_order_status_changed', [$this, 'cartStatusChanger'], 10, 3);
     }
 
     // creating table
@@ -44,10 +54,12 @@ class manager
             `id` mediumint(9) NOT NULL AUTO_INCREMENT,
             `name` varchar(255) NOT NULL,
             `city` varchar(255) NOT NULL,
+            `mail` varchar(255) NOT NULL,
             `is_default` tinyint(1) NOT NULL DEFAULT 0,
             `is_restrict` tinyint(1) NOT NULL DEFAULT 0,
             `lat` varchar(255) NOT NULL,
             `lng` varchar(255) NOT NULL,
+            `payment_methods` varchar(255) NOT NULL DEFAULT '',
             `radius` mediumint(9) NOT NULL,
             `status` tinyint(1) NOT NULL DEFAULT 1,
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -94,11 +106,23 @@ class manager
             UNIQUE KEY store_product (`store_id`, `km`, `type`)
         ) $charset_collate;";
 
+        $order_sql = "CREATE TABLE IF NOT EXISTS {$this->order_table} (
+            `id` mediumint(9) NOT NULL AUTO_INCREMENT,
+            `store_id` mediumint(9) NOT NULL,
+            `order_id` mediumint(9) NOT NULL,
+            `status` mediumint(9) NOT NULL DEFAULT '0',
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY  (`id`),
+            UNIQUE KEY unique_order (`store_id`, `order_id`)
+        ) $charset_collate;";
+
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($store_sql);
         dbDelta($product_sql);
         dbDelta($config_sql);
         dbDelta($fare_sql);
+        dbDelta($order_sql);
     }
 
     // destroying table
@@ -158,6 +182,16 @@ class manager
             ]
         ];
 
+        foreach ($this->store_list as $item) {
+            array_push($submenus,[
+                "title" => $item->name,
+                "page_title" => $item->name." | Multi Store Manager",
+                "slug" => "multi-store-manager/manage-store&store_page=true&store_id=".$item->id,
+                // "slug" => "multi-store-manager/" . (strtolower(str_replace(" ", "-", $item->name))) . "&store_page=true&store_id=" . $item->id,
+                "callback" => [$this, 'managestoreList'],
+            ]);
+        }
+
         foreach ($submenus as $submenu) {
             add_submenu_page(
                 'multi-store-manager',
@@ -174,14 +208,42 @@ class manager
     {
         echo '<div class="wrap">
             <h1>Multi Store Manager</h1> <hr />
+            <h2 style="line-height: 1.33;">
+                Steps to configure before getting started with Multi Store Manager<br/>
+                <small>This will prevent any conflicts with the plugin\'s functionality and ensure smooth operation.</small>
+            </h2>
+            <ul>
+                <li>
+                    <h4>Step 1: </h4>
+                    <div style="padding-left: 12px">
+                        Please ensure that stock management is disabled in the WooCommerce inventory settings.
+                        <a href="' . admin_url() . 'admin.php?page=wc-settings&tab=products&section=inventory">Click Here!</a> for inventory setting page
+                    </div>
+                </li>
+                <li>
+                    <h4>Step 2: </h4>
+                    <p style="padding-left: 12px">
+                        Please ensure that all products are set to "In stock" status in WooCommerce.
+                    </p>
+                    <a style="padding-left: 12px" href="' . admin_url() . 'admin.php?page=wc-settings&tab=products&section=inventory">Click Here!</a> for inventory setting page
+                </li>
+            </ul>
         </div>';
     }
 
     public function managestoreList()
     {
+        $isStorePage = (isset($_GET["store_page"]) && ($_GET["store_page"] == "true")) ? true : false;
+        $storeId = isset($_GET["store_id"]) && ($_GET["store_id"] != "") ? $_GET["store_id"] : null;
+
         $api_key = $this->fetchConfig('map');
         $store = new storeHelper();
         $list = $store->getStoreList();
+        if ($isStorePage && $storeId != null) {
+            $displayInfo = true;
+            $storeInfo = $store->getStoreList($storeId);
+        }
+
         require_once STORE_PLUGIN_DIR . '/admin/pages/shop-list.php';
     }
 
@@ -189,6 +251,7 @@ class manager
     {
         $storeId = $_GET['store_id'] ?? null;
         $productList = [];
+        $isStorePage = (isset($_GET["store_info"]) && ($_GET["store_info"] == "true")) ? true : false;
 
         if ($storeId !== null) {
             require_once STORE_PLUGIN_DIR . '/admin/helpers/store.php';
@@ -203,6 +266,7 @@ class manager
     {
         $storeId = $_GET['store_id'] ?? null;
         $productList = [];
+        $isStorePage = (isset($_GET["store_info"]) && ($_GET["store_info"] == "true")) ? true : false;
 
         if ($storeId !== null) {
             require_once STORE_PLUGIN_DIR . '/admin/helpers/store.php';
@@ -217,13 +281,22 @@ class manager
     public function manageConfig()
     {
         $mapKey = $this->fetchConfig('map');
-        $radius = $this->fetchConfig('radius');
+        $minPrice = $this->fetchConfig('minPrice');
         require_once STORE_PLUGIN_DIR . '/admin/pages/config.php';
     }
 
     public function manageOrders()
     {
-        require_once STORE_PLUGIN_DIR . '/admin/pages/orders.php';
+        $storeId = $_GET['store_id'] ?? null;
+        $isStorePage = (isset($_GET["store_info"]) && ($_GET["store_info"] == "true")) ? true : false;
+
+        if ($storeId !== null) {
+            require_once STORE_PLUGIN_DIR . '/admin/helpers/orders.php';
+            $order = new orderHelper();
+            $count = $order->getOrderCount($storeId)->total_order ?? 0;
+            $list = $order->fetchList($storeId);
+            require_once STORE_PLUGIN_DIR . '/admin/pages/orders.php';
+        }
     }
 
     public function fetchConfig($key)
@@ -257,5 +330,59 @@ class manager
                 'callback' => $value["callback"]
             ]);
         }
+    }
+
+    public function cartStatusChanger($order_id, $old_status, $new_status)
+    {
+        if (in_array($new_status, ["cancelled", "failed", "refunded", "order-returned"])) {
+
+            global $wpdb;
+
+            require_once STORE_PLUGIN_DIR . "admin/helpers/orders.php";
+            $orderManager = new orderHelper();
+            $orderList = wc_get_order($order_id);
+            $storeId = null;
+
+            foreach ($orderList->get_items() as $item) {
+                if ($storeId == null) {
+                    $storeId = $item->get_meta("store_id");
+                    break;
+                }
+            }
+
+            if ($storeId != null) {
+                $orderStatus = $orderManager->fetchOrderStatus($order_id, $storeId);
+                if ($orderStatus->status == "1") {
+                    $orderManager->udpateOrderStatus($order_id, $storeId, 2);
+
+                    foreach ($orderList->get_items() as $item) {
+                        $product_id = $item->get_product_id();
+                        $quantity = (int)$item->get_quantity();
+                        $variation = $item->get_meta("variant_value");
+                        $store_id = $item->get_meta("store_id");
+
+                        $wpdb->query(
+                            $wpdb->prepare(
+                                "UPDATE {$this->product_table} 
+                         SET `stock` = `stock` + %d 
+                         WHERE `store_id` = %d AND `product_id` = %d AND `quantity` = %s",
+                                $quantity,
+                                $store_id,
+                                $product_id,
+                                $variation
+                            )
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    public function remove_shipping($totals, $order, $tax_display)
+    {
+        if (isset($totals['shipping'])) {
+            unset($totals['shipping']);
+        }
+        return $totals;
     }
 }

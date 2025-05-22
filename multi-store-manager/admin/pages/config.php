@@ -17,13 +17,21 @@
                 </tr>
                 <tr class="field-group">
                     <td class="label">
+                        <label for="minPrice">Minimum Order Price</label>
+                    </td>
+                    <td>
+                        <input type="text" name="minPrice" id="minPrice" placeholder="Enter Minimum order price value" value="<?= $minPrice??0 ?>" required>
+                    </td>
+                </tr>
+                <!-- <tr class="field-group">
+                    <td class="label">
                         <label for="radius">Maximum Radius(km)</label>
                     </td>
                     <td>
                         <input type="text" name="radius" id="radius" placeholder="Enter Value" value="<?= $radius ?>" required>
                         <small class="hint"></small>
                     </td>
-                </tr>
+                </tr> -->
             </tbody>
         </table>
         <button class="submit button button-primary">Update Configuration</button>

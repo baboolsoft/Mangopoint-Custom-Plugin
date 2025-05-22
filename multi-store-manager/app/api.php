@@ -12,6 +12,10 @@ function retriveProducts(WP_REST_Request $request)
     $lat = $request->get_param('latitude');
     $lng = $request->get_param('longitude');
 
+    // ini_set('display_errors', 1);
+    //     ini_set('display_startup_errors', 1);
+    //     error_reporting(E_ALL);
+
     if ($lat == 0 && $lng == 0) {
         $store = defaultStore();
     } else {
@@ -81,9 +85,14 @@ function calcualteFare(WP_REST_Request $request)
     if (count($data) > 0) {
         $location = $data[0]->geometry->location;
 
-        $store = getStoreInfo($_SESSION["store"]["id"]);
         $distance = getDistanceInKm($store->lat, $store->lng, $location->lat, $location->lng);
-        $fare = calculateFare($_SESSION["store"]["id"], getDistanceInKm($store->lat, $store->lng, $location->lat, $location->lng));
+        $nearestStore = getNearestLocation($location->lat, $location->lng);
+        $store = getStoreInfo($nearestStore->id);
+        $_SESSION["store"] = [
+            "id" => $nearestStore->id,
+            "city" => $nearestStore->city
+        ];
+        $fare = calculateFare($nearestStore->id, getDistanceInKm($store->lat, $store->lng, $location->lat, $location->lng));
 
         if (($store->is_restrict == '0') || ($store->is_restrict == '1' && $store->radius > $distance)) {
             $enable_order = true;
@@ -97,6 +106,11 @@ function calcualteFare(WP_REST_Request $request)
         "fare" => (int)$fare,
         "fare_html" => wc_price($fare),
         "enable_order" => $enable_order,
-        "reason" => $reason
+        "reason" => $reason,
+        "locationInfo" => [
+            "latitude" => (float)$location->lat,
+            "longitude" => (float)$location->lng,
+            "pincode" => $request->get_param("pincode")
+        ]
     ], 200);
 }

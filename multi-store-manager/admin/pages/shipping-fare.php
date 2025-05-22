@@ -2,8 +2,14 @@
     <div class="title-bar">
         <h1>Shopping Fare | <?= ucwords($store->getStoreName($storeId)) ?></h1>
         <div>
-            <a href="<?= admin_url() ?>admin.php?page=multi-store-manager/manage-store" class="button button-primary">Back to Store</a>
+            <?php
+            if (isset($isStorePage) && $isStorePage == false) {
+                echo '<a href="' . admin_url() . 'admin.php?page=multi-store-manager/manage-store" class="button button-primary">Back to Store</a>';
+            }
+            ?>
             <button class="add-btn button button-primary">Add Shipping Fare</button>
+            <a href="<?= admin_url() ?>admin.php?page=multi-store-manager/product-inventory&store_info=<?= (isset($isStorePage) && $isStorePage == true) ? 'true' : 'false' ?>&store_id=<?= $storeId ?>" class="button button-primary">Manage Products</a>
+            <a href="<?= admin_url() ?>admin.php?page=multi-store-manager/orders-list&store_info=<?= (isset($isStorePage) && $isStorePage == true) ? 'true' : 'false' ?>&store_id=<?= $storeId ?>" class="button button-primary">View Orders</a>
         </div>
     </div>
     <form data-title="Shipping Fare" class="fare-form form">
@@ -42,7 +48,7 @@
     <table class="wp-list-table widefat fixed striped">
         <thead>
             <tr>
-                <th width="20">#</th>
+                <th width="50">#</th>
                 <th>Label</th>
                 <th width="120">Fare(₹)</th>
                 <th class="action"></th>

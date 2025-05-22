@@ -9,6 +9,16 @@ body.msm__loading::before {
     z-index: 999;
 }
 
+.err {
+	margin: 10px 0 10px;
+    padding: 2px 2px;
+   	color: #cc0000;
+    font-size: 13px;
+    line-height: 2.4;
+    display: block;
+}
+
+
 .lbpl .result .products:has(.product-item) {
     padding-top: 2rem;
 }
@@ -344,11 +354,11 @@ ul.products:has(.skeleton-wrapper) {
         }
     }
 
-    .add_to_cart_product_btn.added {
-        opacity: .75;
-        pointer-events: none;
+    .add_to_cart_product_btn {
+        /* opacity: .75;
+        pointer-events: none; */
         margin-right: 20px;
-        background-color: #444;
+        /* background-color: #444; */
     }
 }
 
@@ -372,9 +382,22 @@ ul.products:has(.skeleton-wrapper) {
     }
 }
 
-/* .shop_table .woocommerce-shipping-totals {
+.xoo-warn {
+    font-size: 13px;
+    line-height: 1.3;
+    margin: 12px;
+    border: 1px solid #130101;
+    padding: 12px;
+    border-top-width: 5px;
+    color: #130101;
+    font-weight: 600;
+    background: #f9e4e4;
+}
+
+.woocommerce-table__product-name .wc-item-meta,
+.shop_table .woocommerce-shipping-totals {
     display: none;
-} */
+}
 
 .xoo-wsc-product .xoo-wsc-pname .err {
     bottom: -80px;
@@ -402,13 +425,152 @@ button[data-can-disable="yes"] {
 
 /* cart and checkout page style end */
 
+/* google map style begin */
+.map-box {
+    position: relative;
+    height: 75vh;
+
+    .gm-control-active.gm-fullscreen-control,
+    /* .gm-control-active, */
+    .gm-svpc,
+    img[alt="Google"],
+    .gmnoprint,
+    .gmnoprint.gm-style-cc,
+    .gmnoprint.gm-style-mtc-bbw {
+        display: none !important;
+    }
+
+    #map-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 12px;
+        border: 1px solid var(--e-global-color-primary);
+        box-shadow: 0px 0px 2px 2px #ffbd003d;
+    }
+
+    #search-place {
+        top: 10px !important;
+        left: 10px !important;
+        width: calc(100% - 20px);
+        height: 35px;
+        border-radius: 8px;
+        border: 1px solid;
+        background: #ffbc00;
+        color: #fff;
+        font-weight: 600;
+        padding-right: 128px;
+        text-overflow: ellipsis;
+
+        &::placeholder {
+            color: #fff;
+        }
+    }
+
+    .current-location {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 16px;
+        right: 20px;
+        padding: 0;
+        z-index: 4;
+        background: #fff;
+        font-size: 13px;
+        padding: 6px;
+        border-radius: 3px;
+        gap: 4px;
+        font-weight: 600;
+        transition: all .6s;
+
+        &:hover {
+            background-color: #000;
+            color: #fff;
+        }
+    }
+}
+
+/* google map style end */
+
+/* cart item style begin */
+.cart_item {
+    input.qty {
+        position: relative;
+        pointer-events: none;
+
+        &::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0000;
+            z-index: 2;
+        }
+    }
+}
+
+/* cart item style end */
+
 @media (max-width: 1400px) {
     .lbpl .product-item {
         width: 33.33%;
     }
 }
 
+@media (min-width: 1025px) {
+    .location-pin.menu-wrap {
+        display: none;
+    }
+}
+
 @media (max-width: 1024px) {
+
+    .hfe-nav-menu.hfe-layout-horizontal {
+        display: block;
+        text-align: right;
+
+        .location-pin,
+        .hfe-nav-menu__toggle {
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .hfe-nav-menu__toggle {
+            width: 18%;
+        }
+
+        .location-pin {
+            width: calc(100% - 30%);
+
+            .location-pin-wrapper {
+                border-radius: 18px;
+                justify-content: center;
+
+                .location-pin-button {
+                    position: absolute;
+                    left: 12px;
+                }
+
+                .label {
+                    padding-left: 20px;
+                    max-height: 35px;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+            }
+        }
+
+        ul.hfe-nav-menu .location-pin {
+            display: none;
+        }
+    }
+
     .lbpl .product-item {
         width: 50%;
     }

@@ -164,4 +164,34 @@
             text-align: center;
         }
     }
+
+    .multi_store_order_item {
+        .chip {
+            margin-left: 0;
+            background: #c8d7e1;
+            color: #003d66;
+            border-color: #003d66;
+            font-size: 13px;
+            padding: 4px 8px;
+
+            &.completed {
+                background-color: #c6e1c6;
+                color: #021f02;
+                border-color: #021f02;
+            }
+
+            &.failed {
+                background: #ebcccc;
+                color: #1b0101;
+                border-color: #1b0101;
+            }
+
+            &.pending,
+            &.on-hold {
+                background: #f6ebd4;
+                color: #161001;
+                border-color: #161001;
+            }
+        }
+    }
 }

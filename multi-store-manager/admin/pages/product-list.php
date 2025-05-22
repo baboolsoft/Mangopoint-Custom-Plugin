@@ -2,15 +2,21 @@
     <div class="title-bar">
         <h1>Product List | <?= ucwords($store->getStoreName($storeId)) ?></h1>
         <div>
-            <a href="<?= admin_url() ?>admin.php?page=multi-store-manager/manage-store" class="button button-primary">Back to Store</a>
+            <?php
+            if (isset($isStorePage) && $isStorePage == false) {
+                echo '<a href="' . admin_url() . 'admin.php?page=multi-store-manager/manage-store" class="button button-primary">Back to Store</a>';
+            }
+            ?>
             <button disabled class="update-product button button-primary">Update Products</button>
             <button class="sync-product button button-primary">Sync All Products</button>
+            <a href="<?= admin_url() ?>admin.php?page=multi-store-manager/shipping-fare&store_info=<?= (isset($isStorePage) && $isStorePage == true) ? 'true' : 'false' ?>&store_id=<?= $storeId ?>" class="button button-primary">Manage Shipping Fare</a>
+            <a href="<?= admin_url() ?>admin.php?page=multi-store-manager/orders-list&store_info=<?= (isset($isStorePage) && $isStorePage == true) ? 'true' : 'false' ?>&store_id=<?= $storeId ?>" class="button button-primary">View Orders</a>
         </div>
     </div>
     <table class="wp-list-table widefat fixed striped">
         <thead>
             <tr>
-                <th width="20">#</th>
+                <th width="50">#</th>
                 <th width="10"></th>
                 <th>Product Name</th>
                 <th width="150">Price</th>

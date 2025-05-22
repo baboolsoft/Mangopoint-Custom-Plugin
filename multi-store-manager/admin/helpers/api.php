@@ -27,16 +27,16 @@ function formSubmit(WP_REST_Request $request)
             "message" => "Configuration updated successfully"
         ], 200);
     } else if ($manage == "store") {
-
         $table = tableName("store");
         $val = [
             "name" => $_POST["name"],
             "city" => $_POST["city"],
-            "is_default" => (int)$_POST["default"],
-            "is_restrict" => (int)$_POST["restrict"],
+            "is_default" => (int)$_POST["default"]??0,
+            "is_restrict" => (int)$_POST["restrict"]??0,
             "lat" => $_POST["lat"],
             "lng" => $_POST["lng"],
             "radius" => $_POST["radius"],
+            "mail" => $_POST["mail"],
             "status" => $_POST["status"]
         ];
 

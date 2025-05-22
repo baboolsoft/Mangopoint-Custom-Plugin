@@ -17,18 +17,18 @@ function getNearestLocation($lat, $lng)
 {
     global $wpdb;
     $store_table = tableName("store");
-    $radius = getConfig("radius");
 
-    $query = "SELECT *, ( 6371 * acos( cos( radians($lat) ) * cos( radians( `lat` ) ) * cos( radians( `lng` ) - radians($lng) ) + sin( radians($lat) ) * sin( radians( `lat` ) ) ) ) AS distance FROM {$store_table} WHERE `lat` != '' AND `lng` != '' AND `status` = '1' HAVING distance < $radius ORDER BY distance";
+    $query = "SELECT *, ( 6371 * acos( cos( radians($lat) ) * cos( radians( `lat` ) ) * cos( radians( `lng` ) - radians($lng) ) + sin( radians($lat) ) * sin( radians( `lat` ) ) ) ) AS distance FROM {$store_table} WHERE `lat` != '' AND `lng` != '' AND `status` = '1' ORDER BY distance";
 
     $storeList = $wpdb->get_results($query);
     $selectedStore = defaultStore();
 
     foreach ($storeList as $store) {
-        if ($store->is_restrict == "0") {
+
+        if ($store->is_default == "1") {
             $selectedStore = $store;
             break;
-        } else if ($store->is_restrict == "1") {
+        } else if ((float)$store->distance <= (float)$store->radius) {
             $distance = getDistanceInKm($lat, $lng, $store->lat, $store->lng);
             if ($store->radius >= $distance) {
                 $selectedStore = $store;
@@ -61,13 +61,19 @@ function productInfo($productId, $storeId, $detail = false)
     $store_data = $wpdb->get_row($wpdb->prepare(
         "SELECT `store_id`,`price`,`stock`,`order`,`delivery_estimate`,`best_selling` FROM {$product_table} WHERE `product_id` = {$productId} AND `store_id` = {$storeId} AND `status` = 1"
     ));
+    $variants = [];
+    if ($product && is_a($product, 'WC_Product') && $product->is_type('variable')) {
 
-    if ($product->is_type('variable')) {
+        $variants = $wpdb->get_results("SELECT `quantity`,`price`,`stock`,`delivery_estimate`,`best_selling` FROM `$product_table` WHERE `product_id`= '{$productId}' AND `store_id` = '{$storeId}' AND `status` = 1");
+
+        // fetching price
         $pr = $wpdb->get_row(
             $wpdb->prepare("SELECT MIN(price) AS min_price, MAX(price) AS max_price FROM {$product_table} WHERE store_id = %d AND product_id = %d AND `status` = '1' ", $storeId, $productId)
         );
         $price = $pr->min_price . " - " . $pr->max_price;
         $price_html = wc_price($pr->min_price) . " - " . wc_price($pr->max_price);
+
+        // fetching stock
         $stock = $wpdb->get_row(
             $wpdb->prepare("SELECT SUM(`stock`) as stockTotal FROM {$product_table} WHERE store_id = %d AND product_id = %d AND `status`='1' ", $storeId, $productId)
         )->stockTotal;
@@ -99,7 +105,8 @@ function productInfo($productId, $storeId, $detail = false)
         'order' => (int)$store_data->order,
         'type' => $product->get_type(),
         'option' => (int)$store_data->delivery_estimate == 1 ? 'same-day-delivery' : 'scheduled-delivery',
-        'best_selling' => (int)$store_data->best_selling
+        'best_selling' => (int)$store_data->best_selling,
+        "variants" => $variants
     ];
 
     if ($detail) {
@@ -250,7 +257,7 @@ function can_store_allow_order($lat, $lng, $storeId = null)
 {
     if ($storeId == null) {
         if (isset($_SESSION["store"])) {
-            $storeId = $_SESSION["store"]->id;
+            $storeId = $_SESSION["store"]["id"];
         } else {
             return false;
         }
@@ -258,7 +265,7 @@ function can_store_allow_order($lat, $lng, $storeId = null)
 
     $store = getStoreInfo($storeId);
 
-    
+
     if ($store->is_default == "1") {
         return true;
     } else {
