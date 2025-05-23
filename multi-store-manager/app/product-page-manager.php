@@ -41,13 +41,23 @@ class productPageManager
             $minPrice = (($minPrice == 0) || ($minPrice > (float)$value->price)) ? $value->price : $minPrice;
             $maxPrice = (($maxPrice == 0) || ($maxPrice < (float)$value->price)) ? $value->price : $maxPrice;
 
-            if ($value->stock > 0) {
+            // Get cart quantity for this product + variant
+            $cart_quantity = 0;
+            foreach (WC()->cart->get_cart() as $cart_item) {
+                if ($cart_item['product_id'] == $productId && (!isset($cart_item['variant']) || $cart_item['variant'] == $value->quantity)) {
+                    $cart_quantity += $cart_item['quantity'];
+                }
+            }
+
+            $remaining_stock = max((int)$value->stock - $cart_quantity, 0);
+
+            if ($remaining_stock > 0) {
                 array_push($variant_datas, [
                     "id" => (int)$value->quantity,
                     "value" => $value->quantity,
                     "label" => $value->quantity_title,
                     "price" => (float)$value->price,
-                    "stock" => $value->stock
+                    "stock" => $remaining_stock
                 ]);
             }
         }
@@ -72,7 +82,7 @@ class productPageManager
         }
         echo '</span>`);';
 
-        if ($total_stock > 0) {
+        if (count($variant_datas) > 0) {
             $cart_html = '';
             if ($isVariant) {
                 $cart_html .= '<table class="variations" cellspacing="0" role="presentation">
@@ -102,8 +112,10 @@ class productPageManager
                     <span class="screen-reader-text">Current price is: ₹200.00.</span></span>
                 </div>';
             }
+
+            $max_stock = isset($variant_datas[0]["stock"]) ? $variant_datas[0]["stock"] : 0;
+
             $cart_html .= '
-            
             <div class="wl-quantity-wrap">
                 <span class="label">Quantity</span>
                 <div class="wl-quantity-cal">
@@ -115,7 +127,7 @@ class productPageManager
                         <a href="javascript:void(0)" id="minus_qty" class="ctrl-btn minus">-</a>
                         <label class="screen-reader-text" for="quantity_' . $uniqId . '">' . ($product->get_name()) . ' quantity</label>
                         <input disabled type="number" id="quantity_' . $uniqId . '" class="input-text qty text" name="quantity" value="1"
-                            aria-label="Product quantity" min="1" max="' . (isset($variant_datas[0]["stock"]) ? $variant_datas[0]["stock"] : $total_stock) . '" step="1" placeholder="" inputmode="numeric"
+                            aria-label="Product quantity" min="1" max="' . $max_stock . '" step="1" placeholder="" inputmode="numeric"
                             autocomplete="off">
                         <label class="screen-reader-text" for="plus_qty"> Plus Quantity</label>
                         <a href="javascript:void(0)" id="plus_qty" class="ctrl-btn plus">+</a>
@@ -124,6 +136,7 @@ class productPageManager
                 </div>
             </div>
             <a href="?add-to-cart=' . ($productId) . '" data-store-id="' . ($storeId) . '" aria-describedby="woocommerce_loop_add_to_cart_link_describedby_' . ($productId) . '" data-quantity="1" class="btn add_to_cart_button ajax_add_to_cart add_to_cart_product_btn" data-product_id="' . ($productId) . '" ' . ($isVariant ? 'data-variant="' . ($variant_datas[0]["value"]) . '" ' : "") . 'data-product_sku="" aria-label="Add to cart: “' . ($product->get_name()) . '”" rel="nofollow" data-success_message="“' . ($product->get_name()) . '” has been added to your cart">Add to cart</a>';
+
             echo 'jQuery(`.wl-addto-cart`).html(`<form class="custom-cart-form cart" enctype="multipart/form-data">' . ($cart_html) . '</form>`);';
             echo 'setTimeout(() => {
                 jQuery(".wl-quantity").each(function(){
