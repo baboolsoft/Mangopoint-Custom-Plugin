@@ -40,7 +40,8 @@ jQuery('document').ready(function () {
     // }
 
     if (localStorage.getItem("enableShipping") ?? false) {
-        const info = JSON.parse(localStorage.getItem("shippingInfo"));
+        const info = JSON.parse(localStorage.getItem("shippingInfo")) || {};
+        const billingInfo = JSON.parse(localStorage.getItem("billingInfo")) || {};
 
         jQuery('form.checkout [name="shipping_first_name"]').val(info.fname);
         jQuery('form.checkout [name="shipping_last_name"]').val(info.lname);
@@ -50,8 +51,22 @@ jQuery('document').ready(function () {
         jQuery('form.checkout [name="shipping_city"]').val(info.city);
         jQuery('form.checkout [name="shipping_state"]').val(info.state);
         jQuery('form.checkout [name="shipping_postcode"]').val(info.pincode);
+
+        jQuery('form.checkout [name="billing_first_name"]').val(billingInfo.fname);
+        jQuery('form.checkout [name="billing_last_name"]').val(billingInfo.lname);
+        jQuery('form.checkout [name="billing_country"]').val(billingInfo.country);
+        jQuery('form.checkout [name="billing_address_1"]').val(billingInfo.address1);
+        jQuery('form.checkout [name="billing_address_2"]').val(billingInfo.address2);
+        jQuery('form.checkout [name="billing_city"]').val(billingInfo.city);
+        jQuery('form.checkout [name="billing_state"]').val(billingInfo.state);
+        jQuery('form.checkout [name="billing_postcode"]').val(billingInfo.pincode);
+        jQuery('form.checkout [name="billing_phone"]').val(billingInfo.phone);
+        jQuery('form.checkout [name="billing_email"]').val(billingInfo.email);
+
         setTimeout(() => {
-            jQuery('[name="ship_to_different_address"]').click();
+            if ((localStorage.getItem("showShippingAddress") ?? "false") === "true") {
+                jQuery('[name="ship_to_different_address"]').click();
+            }
         }, 100);
     }
 
@@ -655,17 +670,21 @@ const sessionPlace = ({
 }
 
 const handleAddress = () => {
-    ["billing_postcode","shipping_postcode"].forEach(name => {
-    // ["shipping_postcode"].forEach(name => {
+    ["billing_postcode", "shipping_postcode"].forEach(name => {
+        // ["shipping_postcode"].forEach(name => {
         jQuery(`[name="${name}"]`).blur(function (e) {
-            if (e.target.value) {
+            const fieldName = jQuery("[name='ship_to_different_address']").is(':checked') ? "shipping_postcode" : "billing_postcode";
+            const { pincode: shippingPincode = "" } = JSON.parse(localStorage.getItem("shippingInfo")) || {};
+            const { pincode: billingPincode = "" } = JSON.parse(localStorage.getItem("billingInfo")) || {};
+            const value = fieldName === "billing_postcode" ? billingPincode : shippingPincode;
+            if (e.target.value && name === fieldName && parseInt(e.target.value) !== parseInt(value)) {
                 const { latitude, longitude } = JSON.parse(localStorage.getItem('coords')) || {};
                 jQuery.ajax({
                     url: `${window.location.origin}/wp-json/multi-store-manager/v1/app/api/shipping-fare/`,
                     type: "POST",
                     data: {
-                        // pincode: e.target.value,
-                        pincode: jQuery("[name='ship_to_different_address']").is(':checked') ? jQuery('[name="shipping_postcode"]').val() : jQuery('[name="billing_postcode"]').val(),
+                        pincode: e.target.value,
+                        // pincode: jQuery("[name='ship_to_different_address']").is(':checked') ? jQuery('[name="shipping_postcode"]').val() : jQuery('[name="billing_postcode"]').val(),
                         latitude, longitude
                     },
                     beforeSend: () => {
@@ -703,7 +722,20 @@ const handleAddress = () => {
                                 state: jQuery('form.checkout [name="shipping_state"]').val(),
                                 pincode: jQuery('form.checkout [name="shipping_postcode"]').val()
                             }));
+                            localStorage.setItem("billingInfo", JSON.stringify({
+                                fname: jQuery('form.checkout [name="billing_first_name"]').val(),
+                                lname: jQuery('form.checkout [name="billing_last_name"]').val(),
+                                country: jQuery('form.checkout [name="billing_country"]').val(),
+                                address1: jQuery('form.checkout [name="billing_address_1"]').val(),
+                                address2: jQuery('form.checkout [name="billing_address_2"]').val(),
+                                city: jQuery('form.checkout [name="billing_city"]').val(),
+                                state: jQuery('form.checkout [name="billing_state"]').val(),
+                                pincode: jQuery('form.checkout [name="billing_postcode"]').val(),
+                                phone: jQuery('form.checkout [name="billing_phone"]').val(),
+                                email: jQuery('form.checkout [name="billing_email"]').val()
+                            }));
                             localStorage.setItem('enableShipping', true);
+                            localStorage.setItem('showShippingAddress', jQuery("[name='ship_to_different_address']").is(':checked'));
                             // }
                             // jQuery('button[name="woocommerce_checkout_place_order"]').removeAttr('disabled', true);
                             // jQuery('.checkout').removeClass('disable_place_order');
