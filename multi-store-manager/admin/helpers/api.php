@@ -33,6 +33,7 @@ function formSubmit(WP_REST_Request $request)
             "city" => $_POST["city"],
             "is_default" => (int)$_POST["default"]??0,
             "is_restrict" => (int)$_POST["restrict"]??0,
+            "cod_enabled" => (int)$_POST["cod_enabled"]??0,
             "lat" => $_POST["lat"],
             "lng" => $_POST["lng"],
             "radius" => $_POST["radius"],
