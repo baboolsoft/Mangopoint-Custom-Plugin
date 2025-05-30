@@ -186,8 +186,7 @@ class manager
             array_push($submenus,[
                 "title" => $item->name,
                 "page_title" => $item->name." | Multi Store Manager",
-                "slug" => "multi-store-manager/manage-store&store_page=true&store_id=".$item->id,
-                // "slug" => "multi-store-manager/" . (strtolower(str_replace(" ", "-", $item->name))) . "&store_page=true&store_id=" . $item->id,
+                "slug" => "multi-store-manager/manage-".(strtolower(str_replace(" ", "-", $item->name)))."/".$item->id,
                 "callback" => [$this, 'managestoreList'],
             ]);
         }
@@ -233,13 +232,19 @@ class manager
 
     public function managestoreList()
     {
-        $isStorePage = (isset($_GET["store_page"]) && ($_GET["store_page"] == "true")) ? true : false;
-        $storeId = isset($_GET["store_id"]) && ($_GET["store_id"] != "") ? $_GET["store_id"] : null;
+        $pageSlug = isset($_GET['page']) ? $_GET['page'] : null;
+        $storeId = null;
+        $isStorePage = false;
 
+        if (count(explode("/",$pageSlug)) > 2) {
+            $storeId = explode("/",$pageSlug)[2];
+        }
+        
         $api_key = $this->fetchConfig('map');
         $store = new storeHelper();
         $list = $store->getStoreList();
-        if ($isStorePage && $storeId != null) {
+        if ($pageSlug !== null && $storeId != null) {
+            $isStorePage = true;
             $displayInfo = true;
             $storeInfo = $store->getStoreList($storeId);
         }

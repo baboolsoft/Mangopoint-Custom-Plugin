@@ -4,6 +4,8 @@ class productPageManager
     public function __construct()
     {
         add_action('woocommerce_before_single_product_summary', [$this, 'productInfo'], 15);
+        // Enqueue Brix styles when needed
+        add_action('wp_enqueue_scripts', [$this, 'enqueue_brix_css']);
     }
 
     public function productInfo()
@@ -68,6 +70,10 @@ class productPageManager
         $isVariant = count($result) === 1 ? 0 : 1;
         $uniqId = uniqid();
 
+        // Get Brix value for the product
+        $brixValue = get_post_meta($productId, '_brix_value', true);
+        $brixHtml = $this->generateBrixScale($brixValue);
+
         echo '<script id="product-manager-script">
             document.addEventListener(`DOMContentLoaded`, function() {
 
@@ -113,6 +119,11 @@ class productPageManager
                 </div>';
             }
 
+            // Add Brix value display before quantity and add to cart
+            if (!empty($brixHtml)) {
+                $cart_html .= '<div class="product-brix-display" style="margin: 20px 0;">' . $brixHtml . '</div>';
+            }
+
             $max_stock = isset($variant_datas[0]["stock"]) ? $variant_datas[0]["stock"] : 0;
 
             $cart_html .= '
@@ -135,7 +146,7 @@ class productPageManager
                     <span class="wl-quantity wl-qunatity-plus"><i aria-hidden="true" class="fas fa-plus"></i></span>
                 </div>
             </div>
-            <a href="?add-to-cart=' . ($productId) . '" data-store-id="' . ($storeId) . '" aria-describedby="woocommerce_loop_add_to_cart_link_describedby_' . ($productId) . '" data-quantity="1" class="btn add_to_cart_button ajax_add_to_cart add_to_cart_product_btn" data-product_id="' . ($productId) . '" ' . ($isVariant ? 'data-variant="' . ($variant_datas[0]["value"]) . '" ' : "") . 'data-product_sku="" aria-label="Add to cart: “' . ($product->get_name()) . '”" rel="nofollow" data-success_message="“' . ($product->get_name()) . '” has been added to your cart">Add to cart</a>';
+            <a href="?add-to-cart=' . ($productId) . '" data-store-id="' . ($storeId) . '" aria-describedby="woocommerce_loop_add_to_cart_link_describedby_' . ($productId) . '" data-quantity="1" class="btn add_to_cart_button ajax_add_to_cart add_to_cart_product_btn" data-product_id="' . ($productId) . '" ' . ($isVariant ? 'data-variant="' . ($variant_datas[0]["value"]) . '" ' : "") . 'data-product_sku="" aria-label="Add to cart: "' . ($product->get_name()) . '"" rel="nofollow" data-success_message=""' . ($product->get_name()) . '" has been added to your cart">Add to cart</a>';
 
             echo 'jQuery(`.wl-addto-cart`).html(`<form class="custom-cart-form cart" enctype="multipart/form-data">' . ($cart_html) . '</form>`);';
             echo 'setTimeout(() => {
@@ -160,8 +171,172 @@ class productPageManager
                 })
             }, 200);';
         } else {
-            echo 'jQuery(`.wl-addto-cart`).html(`<input type="submit" data-security="723de9da27" data-variation_id="" data-product_id="' . ($productId) . '" class="_cwg_popup_submit " value="Out of stock">`);';
+            // Even when out of stock, show Brix value if available
+            $out_of_stock_html = '';
+            if (!empty($brixHtml)) {
+                $out_of_stock_html = '<div class="product-brix-display" style="margin: 20px 0;">' . $brixHtml . '</div>';
+            }
+            $out_of_stock_html .= '<input type="submit" data-security="723de9da27" data-variation_id="" data-product_id="' . ($productId) . '" class="_cwg_popup_submit " value="Out of stock">';
+            
+            echo 'jQuery(`.wl-addto-cart`).html(`' . $out_of_stock_html . '`);';
         }
         echo '});</script>';
+    }
+
+    /**
+     * Generate Brix scale HTML
+     */
+    private function generateBrixScale($brixValue)
+    {
+        if (empty($brixValue)) {
+            return '';
+        }
+
+        global $wpdb;
+        
+        // Get Brix configuration from database
+        $query = $wpdb->prepare("SELECT * FROM `brix_config` WHERE id = 1");
+        $result = $wpdb->get_row($query);
+
+        $minVal = isset($result->minValue) ? $result->minValue : 0;
+        $maxVal = isset($result->maxValue) ? $result->maxValue : 25; // Default max if not set
+
+        // Validate Brix value is within range
+        if ($minVal >= $maxVal || $brixValue < $minVal || $brixValue > $maxVal) {
+            return '<div class="brix-value-simple"><strong>Brix Value: ' . esc_html($brixValue) . '</strong></div>';
+        }
+
+        $html = '<div class="brix-scale-container">
+                    <div class="brix-scale-title"><strong>Brix Value: ' . esc_html($brixValue) . '</strong></div>
+                    <div class="brix-scale">';
+        
+        for ($i = $minVal; $i <= $maxVal; $i++) {
+            $position = ($i - $minVal) * (100 / ($maxVal - $minVal));
+            $isSmall = $i % 5 == 0 ? '' : ' small';
+            $active = ($brixValue == $i) ? ' active' : '';
+            
+            $html .= '<div class="tick' . $isSmall . $active . '" style="left: ' . $position . '%;"></div>';
+            
+            // Only show labels for major ticks (every 5th)
+            if ($i % 5 == 0) {
+                $html .= '<div class="tick-label" style="left: ' . $position . '%;">' . $i . '</div>';
+            }
+            
+            // Add indicator for current Brix value
+            if ($brixValue == $i) {
+                $html .= '<div class="indicator" style="left: ' . $position . '%;"></div>';
+            }
+        }
+        
+        $html .= '</div></div>';
+
+        return $html;
+    }
+
+    /**
+     * Enqueue Brix CSS styles
+     */
+    public function enqueue_brix_css()
+    {
+        if (is_product()) {
+            // Add inline CSS for Brix scale
+            $css = '
+            .brix-scale-container {
+                margin: 15px 0;
+                padding: 15px;
+                background: #f9f9f9;
+                border-radius: 8px;
+                border: 1px solid #e0e0e0;
+            }
+            
+            .brix-scale-title {
+                margin-bottom: 10px;
+                font-size: 16px;
+                color: #333;
+            }
+            
+            .brix-scale {
+                position: relative;
+                height: 40px;
+                background: linear-gradient(to right, #e8f5e8, #4CAF50);
+                border-radius: 20px;
+                margin: 10px 0;
+                border: 2px solid #ddd;
+            }
+            
+            .brix-scale .tick {
+                position: absolute;
+                top: 0;
+                width: 2px;
+                height: 100%;
+                background: #333;
+                transform: translateX(-50%);
+            }
+            
+            .brix-scale .tick.small {
+                height: 50%;
+                top: 25%;
+                background: #666;
+                width: 1px;
+            }
+            
+            .brix-scale .tick.active {
+                background: #ff4444;
+                width: 3px;
+                height: 120%;
+                top: -10%;
+                z-index: 2;
+            }
+            
+            .brix-scale .tick-label {
+                position: absolute;
+                top: 45px;
+                transform: translateX(-50%);
+                font-size: 12px;
+                font-weight: bold;
+                color: #333;
+            }
+            
+            .brix-scale .indicator {
+                position: absolute;
+                top: -8px;
+                width: 16px;
+                height: 16px;
+                background: #ff4444;
+                border-radius: 50%;
+                transform: translateX(-50%);
+                border: 2px solid #fff;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                z-index: 3;
+            }
+            
+            .brix-value-simple {
+                margin: 15px 0;
+                padding: 10px;
+                background: #f0f8ff;
+                border-left: 4px solid #4CAF50;
+                border-radius: 4px;
+            }
+            
+            @media (max-width: 768px) {
+                .brix-scale-container {
+                    margin: 10px 0;
+                    padding: 10px;
+                }
+                
+                .brix-scale {
+                    height: 30px;
+                    margin: 8px 0;
+                }
+                
+                .brix-scale .tick-label {
+                    top: 35px;
+                    font-size: 10px;
+                }
+            }
+            ';
+            
+            wp_add_inline_style('woocommerce-general', $css);
+        }
     }
 }

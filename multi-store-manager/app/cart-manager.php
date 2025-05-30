@@ -16,8 +16,172 @@ class cartManager
         add_action('woocommerce_cart_calculate_fees', [$this, 'cartFee']); // adding shipping fare
         add_action('woocommerce_thankyou', [$this, 'handleStockCount'], 10, 1); // handling stock deduction
         add_action('woocommerce_checkout_order_created', [$this, 'manageOrder'], 10, 1); // manage order id once order placed
+        
+        // NEW: COD payment gateway hooks
+        add_filter('woocommerce_available_payment_gateways', [$this, 'filter_payment_gateways_by_store_cod'], 10, 1);
+        add_action('woocommerce_checkout_init', [$this, 'check_cod_availability_on_checkout']);
         // shipping hooks end
     }
+
+    /**
+     * NEW FUNCTION: Check if Cash on Delivery is enabled for the current store
+     * 
+     * @param int $store_id The store ID to check COD status for
+     * @return bool True if COD is enabled, false otherwise
+     */
+    public function is_cod_enabled_for_store($store_id = null)
+    {
+        if ($store_id === null && isset($_SESSION["store"]["id"])) {
+            $store_id = $_SESSION["store"]["id"];
+        }
+        
+        if (!$store_id) {
+            return false;
+        }
+
+        global $wpdb;
+        require_once STORE_PLUGIN_DIR . '/admin/helpers/api.php';
+        $table = tableName("store");
+        
+        $query = "SELECT cod_enabled FROM `$table` WHERE `id` = %d";
+        $result = $wpdb->get_var($wpdb->prepare($query, $store_id));
+        
+        return ($result == 1);
+    }
+
+    /**
+     * NEW FUNCTION: Get COD status for all stores in cart
+     * 
+     * @return array Array of store IDs and their COD status
+     */
+    public function get_cart_stores_cod_status()
+    {
+        $cart_items = WC()->cart->get_cart();
+        $stores_cod_status = [];
+        
+        foreach ($cart_items as $cart_item) {
+            if (isset($cart_item['storeId'])) {
+                $store_id = $cart_item['storeId'];
+                if (!isset($stores_cod_status[$store_id])) {
+                    $stores_cod_status[$store_id] = $this->is_cod_enabled_for_store($store_id);
+                }
+            }
+        }
+        
+        return $stores_cod_status;
+    }
+
+    /**
+     * NEW FUNCTION: Filter available payment gateways based on store COD settings
+     * 
+     * @param array $available_gateways Available payment gateways
+     * @return array Filtered payment gateways
+     */
+    public function filter_payment_gateways_by_store_cod($available_gateways)
+    {
+        // Only apply on checkout page
+        if (!is_checkout() || is_admin()) {
+            return $available_gateways;
+        }
+
+        $cart_stores_cod = $this->get_cart_stores_cod_status();
+        
+        // If cart is empty or no stores found, return all gateways
+        if (empty($cart_stores_cod)) {
+            return $available_gateways;
+        }
+
+        // Check if all stores in cart have COD enabled
+        $all_stores_cod_enabled = true;
+        $any_store_cod_enabled = false;
+        
+        foreach ($cart_stores_cod as $store_id => $cod_enabled) {
+            if (!$cod_enabled) {
+                $all_stores_cod_enabled = false;
+            } else {
+                $any_store_cod_enabled = true;
+            }
+        }
+
+        // If no store has COD enabled, remove COD gateway
+        if (!$any_store_cod_enabled && isset($available_gateways['cod'])) {
+            unset($available_gateways['cod']);
+        }
+        
+        // If not all stores have COD enabled and there are mixed stores, 
+        // you might want to show a notice or handle differently
+        if (!$all_stores_cod_enabled && $any_store_cod_enabled) {
+            // Mixed COD availability - you can add custom logic here
+            // For now, we'll allow COD if at least one store supports it
+        }
+
+        return $available_gateways;
+    }
+
+    /**
+     * NEW FUNCTION: Check COD availability and show notices on checkout
+     */
+    public function check_cod_availability_on_checkout()
+    {
+        if (!is_checkout()) {
+            return;
+        }
+
+        $cart_stores_cod = $this->get_cart_stores_cod_status();
+        
+        if (empty($cart_stores_cod)) {
+            return;
+        }
+
+        $cod_enabled_stores = [];
+        $cod_disabled_stores = [];
+        
+        foreach ($cart_stores_cod as $store_id => $cod_enabled) {
+            if ($cod_enabled) {
+                $cod_enabled_stores[] = $store_id;
+            } else {
+                $cod_disabled_stores[] = $store_id;
+            }
+        }
+
+        // If there are stores with COD disabled, show a notice
+        if (!empty($cod_disabled_stores)) {
+            $store_names = $this->get_store_names($cod_disabled_stores);
+            $message = sprintf(
+                __('Note: Cash on Delivery is not available for products from: %s. Please use other payment methods for these items.', 'multi-store-manager'),
+                implode(', ', $store_names)
+            );
+            
+            add_action('woocommerce_before_checkout_form', function() use ($message) {
+                wc_print_notice($message, 'notice');
+            });
+        }
+    }
+
+    /**
+     * NEW HELPER FUNCTION: Get store names by IDs
+     * 
+     * @param array $store_ids Array of store IDs
+     * @return array Array of store names
+     */
+    private function get_store_names($store_ids)
+    {
+        if (empty($store_ids)) {
+            return [];
+        }
+
+        global $wpdb;
+        require_once STORE_PLUGIN_DIR . '/admin/helpers/api.php';
+        $table = tableName("store");
+        
+        $placeholders = implode(',', array_fill(0, count($store_ids), '%d'));
+        $query = "SELECT name FROM `$table` WHERE `id` IN ($placeholders)";
+        
+        $results = $wpdb->get_col($wpdb->prepare($query, $store_ids));
+        
+        return $results ? $results : [];
+    }
+
     public function cartHandler()
     {
         require_once STORE_PLUGIN_DIR . '/admin/helpers/product.php';
